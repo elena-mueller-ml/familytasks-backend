@@ -38,6 +38,17 @@ router.post("/join-family", async (req, res) => {
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
 });
 
+router.get("/family/:inviteCode/members", async (req, res) => {
+  try {
+    const family = await prisma.family.findUnique({
+      where: { inviteCode: req.params.inviteCode.toUpperCase() },
+      include: { members: { select: { id:true, name:true, role:true } } },
+    });
+    if (!family) return res.status(404).json({ error:"Familie nicht gefunden. Code prüfen!" });
+    res.json({ familyName: family.name, members: family.members });
+  } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
+});
+
 router.post("/login", async (req, res) => {
   try {
     const { userId, pin } = req.body;
