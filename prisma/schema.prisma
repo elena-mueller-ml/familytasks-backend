@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Family {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique @default(cuid())
+  rewardMode String   @default("praemien")
+  createdAt  DateTime @default(now())
+
+  members User[]
+  tasks   Task[]
+  rewards Reward[]
+
+  @@map("families")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  familyId    String
+  name        String
+  role        String
+  pin         String?
+  avatarColor String   @default("#1D9E75")
+  totalStars  Int      @default(0)
+  weeklyStars Int      @default(0)
+  weekYear    String   @default("")
+  createdAt   DateTime @default(now())
+
+  family        Family           @relation(fields: [familyId], references: [id])
+  assignedTasks Task[]           @relation("AssignedTo")
+  createdTasks  Task[]           @relation("CreatedBy")
+  completions   TaskCompletion[]
+  starsLog      StarsLog[]
+  redemptions   RewardRedemption[]
+  pushTokens    PushToken[]
+
+  @@map("users")
+}
+
+model Task {
+  id                String    @id @default(cuid())
+  familyId          String
+  title             String
+  category          String    @default("wohnen")
+  starsReward       Int       @default(2)
+  status            String    @default("open")
+  assignedToId      String?
+  claimedById       String?
+  createdById       String
+  isChildSuggestion Boolean   @default(false)
+  isFavorite        Boolean   @default(false)
+  recurrenceType    String    @default("once")
+  recurrenceDays    String?
+  recurrenceDay     Int?
+  lastDoneDate      String?
+  approvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  family     Family           @relation(fields: [familyId], references: [id])
+  assignedTo User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy  User             @relation("CreatedBy", fields: [createdById], references: [id])
+  completions TaskCompletion[]
+
+  @@map("tasks")
+}
+
+model TaskCompletion {
+  id          String   @id @default(cuid())
+  taskId      String
+  userId      String
+  completedAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("task_completions")
+}
+
+model StarsLog {
+  id          String   @id @default(cuid())
+  userId      String
+  delta       Int
+  reason      String
+  referenceId String?
+  weekYear    String   @default("")
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("stars_log")
+}
+
+model Reward {
+  id            String   @id @default(cuid())
+  familyId      String
+  forUserId     String
+  name          String
+  icon          String   @default("🎁")
+  starsRequired Int
+  createdAt     DateTime @default(now())
+
+  family      Family             @relation(fields: [familyId], references: [id])
+  redemptions RewardRedemption[]
+
+  @@map("rewards")
+}
+
+model RewardRedemption {
+  id                String    @id @default(cuid())
+  rewardId          String
+  userId            String
+  redeemedAt        DateTime  @default(now())
+  confirmedByParent Boolean   @default(false)
+  confirmedAt       DateTime?
+
+  reward Reward @relation(fields: [rewardId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("reward_redemptions")
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("push_tokens")
+}

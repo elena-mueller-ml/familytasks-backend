@@ -1,0 +1,18 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import authRoutes   from "./routes/auth.js";
+import familyRoutes from "./routes/families.js";
+import taskRoutes   from "./routes/tasks.js";
+import rewardRoutes from "./routes/rewards.js";
+
+const app  = express();
+const PORT = process.env.PORT || 3000;
+app.use(cors());
+app.use(express.json());
+app.get("/health", (_, res) => res.json({ status:"ok", version:"1.0.0" }));
+app.use("/api/auth",     authRoutes);
+app.use("/api/families", familyRoutes);
+app.use("/api/tasks",    taskRoutes);
+app.use("/api/rewards",  rewardRoutes);
+app.listen(PORT, () => console.log(`FamilyTasks API läuft auf Port ${PORT}`));
