@@ -28,13 +28,15 @@ router.post("/create-family", async (req, res) => {
 
 router.post("/join-family", async (req, res) => {
   try {
-    const { inviteCode, childName, pin } = req.body;
-    if (!inviteCode||!childName||!pin) return res.status(400).json({ error:"inviteCode, childName und pin erforderlich" });
+    const { inviteCode, name, childName, pin, role } = req.body;
+    const memberName = name || childName;
+    const memberRole = role === "parent" ? "parent" : "child";
+    if (!inviteCode||!memberName||!pin) return res.status(400).json({ error:"inviteCode, name und pin erforderlich" });
     const family = await prisma.family.findUnique({ where:{ inviteCode } });
     if (!family) return res.status(404).json({ error:"Familie nicht gefunden. Code prüfen!" });
     const pinHash = await bcrypt.hash(pin, 10);
-    const child   = await prisma.user.create({ data:{ familyId:family.id, name:childName, role:"child", pin:pinHash } });
-    res.json({ token:makeToken(child), user:{ id:child.id, name:child.name, role:child.role, familyId:family.id }, family:{ id:family.id, name:family.name } });
+    const member  = await prisma.user.create({ data:{ familyId:family.id, name:memberName, role:memberRole, pin:pinHash } });
+    res.json({ token:makeToken(member), user:{ id:member.id, name:member.name, role:member.role, familyId:family.id }, family:{ id:family.id, name:family.name } });
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
 });
 
