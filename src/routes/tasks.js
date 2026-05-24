@@ -50,7 +50,10 @@ router.patch("/:id/complete", authenticate, async (req, res) => {
 
 router.patch("/:id/approve", authenticate, requireParent, async (req, res) => {
   try {
-    const task = await prisma.task.update({ where:{ id:req.params.id }, data:{ status:"open", approvedAt:new Date() } });
+    const { starsReward } = req.body;
+    const data = { status:"open", approvedAt:new Date() };
+    if (starsReward) data.starsReward = parseInt(starsReward);
+    const task = await prisma.task.update({ where:{ id:req.params.id }, data });
     res.json(task);
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
 });
