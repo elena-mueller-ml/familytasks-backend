@@ -62,6 +62,25 @@ router.patch("/:id/reject", authenticate, requireParent, async (req, res) => {
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
 });
 
+router.patch("/:id/unclaim", authenticate, async (req, res) => {
+  try {
+    const task = await prisma.task.findUnique({ where:{ id:req.params.id } });
+    if (!task||task.familyId!==req.user.familyId) return res.status(404).json({ error:"Nicht gefunden" });
+    if (task.claimedById !== req.user.id) return res.status(403).json({ error:"Nicht deine Aufgabe" });
+    await prisma.task.update({ where:{ id:req.params.id }, data:{ claimedById:null, status:"open" } });
+    res.json({ success:true });
+  } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
+});
+
+router.patch("/:id/favorite", authenticate, async (req, res) => {
+  try {
+    const task = await prisma.task.findUnique({ where:{ id:req.params.id } });
+    if (!task||task.familyId!==req.user.familyId) return res.status(404).json({ error:"Nicht gefunden" });
+    await prisma.task.update({ where:{ id:req.params.id }, data:{ isFavorite:!task.isFavorite } });
+    res.json({ success:true });
+  } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
+});
+
 router.patch("/:id/claim", authenticate, async (req, res) => {
   try {
     const task = await prisma.task.findUnique({ where:{ id:req.params.id } });
