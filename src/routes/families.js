@@ -46,23 +46,34 @@ router.patch("/double-star-days", authenticate, requireParent, async (req, res) 
   try {
     const { days } = req.body;
     if (!Array.isArray(days) || days.length > 1) return res.status(400).json({ error:"Maximal ein Doppelstern-Tag pro Woche erlaubt" });
+    const today = new Date().toISOString().split("T")[0];
+    const family = await prisma.family.findUnique({ where:{ id:req.user.familyId } });
+    if (family.doubleStarDaysSetDate) {
+      const daysSince = Math.floor((new Date(today) - new Date(family.doubleStarDaysSetDate)) / 86400000);
+      if (daysSince < 7) return res.status(400).json({ error:"Fester Tag kann erst nach 7 Tagen geändert werden", lockDays: 7 - daysSince });
+    }
     const f = await prisma.family.update({
       where: { id: req.user.familyId },
-      data: { doubleStarDays: JSON.stringify(days) }
+      data: { doubleStarDays: JSON.stringify(days), doubleStarDaysSetDate: today }
     });
-    res.json({ doubleStarDays: JSON.parse(f.doubleStarDays) });
+    res.json({ doubleStarDays: JSON.parse(f.doubleStarDays), doubleStarDaysSetDate: f.doubleStarDaysSetDate });
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
 });
 
-// Manuellen Doppelstern-Boost für heute an/aus
+// Manuellen Doppelstern-Boost für heute an/aus (7-Tage-Sperre nach Aktivierung)
 router.patch("/double-star-toggle", authenticate, requireParent, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
     const family = await prisma.family.findUnique({ where:{ id:req.user.familyId } });
     const isActiveToday = family.doubleStarActive && family.doubleStarActiveDate === today;
+    if (!isActiveToday && family.doubleStarActiveDate && family.doubleStarActiveDate !== today) {
+      const daysSince = Math.floor((new Date(today) - new Date(family.doubleStarActiveDate)) / 86400000);
+      if (daysSince < 7) return res.status(400).json({ error:"Doppelsterne bereits diese Woche verwendet", cooldownDays: 7 - daysSince });
+    }
     const f = await prisma.family.update({
       where: { id: req.user.familyId },
-      data: { doubleStarActive: !isActiveToday, doubleStarActiveDate: isActiveToday ? "" : today }
+      // Beim Ausschalten: Datum behalten (für Cooldown-Berechnung)
+      data: { doubleStarActive: !isActiveToday, doubleStarActiveDate: isActiveToday ? family.doubleStarActiveDate : today }
     });
     res.json({ doubleStarActive: f.doubleStarActive, doubleStarActiveDate: f.doubleStarActiveDate });
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }

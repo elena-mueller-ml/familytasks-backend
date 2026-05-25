@@ -14,6 +14,7 @@ model Family {
   inviteCode           String   @unique @default(cuid())
   rewardMode           String   @default("praemien")
   doubleStarDays       String   @default("[]")
+  doubleStarDaysSetDate String  @default("")
   doubleStarActive     Boolean  @default(false)
   doubleStarActiveDate String   @default("")
   createdAt            DateTime @default(now())
