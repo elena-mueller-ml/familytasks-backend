@@ -84,6 +84,33 @@ router.patch("/:id/favorite", authenticate, async (req, res) => {
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
 });
 
+router.patch("/:id", authenticate, requireParent, async (req, res) => {
+  try {
+    const { title, category, starsReward, assignedToId, recurrenceType, recurrenceDays, recurrenceDay } = req.body;
+    const task = await prisma.task.findUnique({ where:{ id:req.params.id } });
+    if (!task||task.familyId!==req.user.familyId) return res.status(404).json({ error:"Nicht gefunden" });
+    const updated = await prisma.task.update({ where:{ id:req.params.id }, data:{
+      ...(title!==undefined && { title }),
+      ...(category!==undefined && { category }),
+      ...(starsReward!==undefined && { starsReward:parseInt(starsReward) }),
+      ...(assignedToId!==undefined && { assignedToId:assignedToId||null }),
+      ...(recurrenceType!==undefined && { recurrenceType }),
+      ...(recurrenceDays!==undefined && { recurrenceDays:JSON.stringify(recurrenceDays) }),
+      ...(recurrenceDay!==undefined && { recurrenceDay }),
+    }});
+    res.json(updated);
+  } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
+});
+
+router.delete("/:id", authenticate, requireParent, async (req, res) => {
+  try {
+    const task = await prisma.task.findUnique({ where:{ id:req.params.id } });
+    if (!task||task.familyId!==req.user.familyId) return res.status(404).json({ error:"Nicht gefunden" });
+    await prisma.task.delete({ where:{ id:req.params.id } });
+    res.json({ success:true });
+  } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
+});
+
 router.patch("/:id/claim", authenticate, async (req, res) => {
   try {
     const task = await prisma.task.findUnique({ where:{ id:req.params.id } });

@@ -38,6 +38,15 @@ router.patch("/redemptions/:id/confirm", authenticate, requireParent, async (req
   } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
 });
 
+router.delete("/:id", authenticate, requireParent, async (req, res) => {
+  try {
+    const reward = await prisma.reward.findUnique({ where:{ id:req.params.id } });
+    if (!reward||reward.familyId!==req.user.familyId) return res.status(404).json({ error:"Nicht gefunden" });
+    await prisma.reward.delete({ where:{ id:req.params.id } });
+    res.json({ success:true });
+  } catch(e) { res.status(500).json({ error:"Serverfehler" }); }
+});
+
 router.get("/stars/:userId", authenticate, async (req, res) => {
   try {
     const logs = await prisma.starsLog.findMany({ where:{ userId:req.params.userId }, orderBy:{ createdAt:"desc" }, take:50 });
