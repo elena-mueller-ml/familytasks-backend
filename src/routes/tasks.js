@@ -75,7 +75,7 @@ router.patch("/:id/complete", authenticate, async (req, res) => {
 
     if (doerId) {
       const doer = await prisma.user.findUnique({ where:{ id:doerId } });
-      if (doer?.role === "child") {
+      if (doer) {
         const family = await prisma.family.findUnique({ where:{ id:task.familyId } });
 
         doubleBonus = done && isDoubleStarDay(family, today);
@@ -86,11 +86,12 @@ router.patch("/:id/complete", authenticate, async (req, res) => {
         const currentWeekYear = getISOWeekYear(new Date());
         const weeklyReset = doer.weekYear !== currentWeekYear;
 
+        // Streak — nur für Kinder
         let newStreak = doer.currentStreak;
         let newLastStreakDate = doer.lastStreakDate;
         let usedFreeze = false;
 
-        if (done) {
+        if (doer.role === "child" && done) {
           if (doer.lastStreakDate === today) {
             // already completed something today — streak unchanged
           } else {
@@ -107,8 +108,8 @@ router.patch("/:id/complete", authenticate, async (req, res) => {
           }
         }
 
-        // Streak-Meilenstein-Bonus
-        const streakIncreased = done && newStreak !== doer.currentStreak;
+        // Streak-Meilenstein-Bonus — nur für Kinder
+        const streakIncreased = doer.role === "child" && done && newStreak !== doer.currentStreak;
         const milestoneBonus  = streakIncreased ? getStreakBonus(newStreak) : 0;
         const milestone       = milestoneBonus > 0 ? { days: newStreak, bonus: milestoneBonus, userId: doerId } : null;
 
@@ -123,12 +124,14 @@ router.patch("/:id/complete", authenticate, async (req, res) => {
         await prisma.user.update({
           where: { id: doerId },
           data: {
-            totalStars:    newTotal,
-            weeklyStars:   newWeekly,
-            weekYear:      currentWeekYear,
-            currentStreak: newStreak,
-            lastStreakDate: newLastStreakDate,
-            ...(usedFreeze ? { streakFreezes: { decrement: 1 } } : {}),
+            totalStars:  newTotal,
+            weeklyStars: newWeekly,
+            weekYear:    currentWeekYear,
+            ...(doer.role === "child" ? {
+              currentStreak:  newStreak,
+              lastStreakDate: newLastStreakDate,
+              ...(usedFreeze ? { streakFreezes: { decrement: 1 } } : {}),
+            } : {}),
           }
         });
 
