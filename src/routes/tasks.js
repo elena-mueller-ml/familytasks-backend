@@ -27,6 +27,15 @@ function daysBetween(dateStr1, dateStr2) {
   return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
 }
 
+const STREAK_MILESTONES = [3, 5, 10, 15, 20, 25];
+const STREAK_BONUS_MAP  = { 3:5, 5:10, 10:15, 15:20, 20:25, 25:30 };
+
+function getStreakBonus(streak) {
+  if (STREAK_BONUS_MAP[streak]) return STREAK_BONUS_MAP[streak];
+  if (streak > 25 && streak % 25 === 0) return 30;
+  return 0;
+}
+
 router.get("/", authenticate, async (req, res) => {
   try {
     const tasks = await prisma.task.findMany({
@@ -98,12 +107,18 @@ router.patch("/:id/complete", authenticate, async (req, res) => {
           }
         }
 
-        streakInfo = { streak: newStreak, usedFreeze, streakFreezes: doer.streakFreezes - (usedFreeze ? 1 : 0) };
+        // Streak-Meilenstein-Bonus
+        const streakIncreased = done && newStreak !== doer.currentStreak;
+        const milestoneBonus  = streakIncreased ? getStreakBonus(newStreak) : 0;
+        const milestone       = milestoneBonus > 0 ? { days: newStreak, bonus: milestoneBonus, userId: doerId } : null;
 
-        const newTotal   = Math.max(0, (doer.totalStars   || 0) + delta);
-        const newWeekly  = weeklyReset && done  ? effectiveStars
+        streakInfo = { streak: newStreak, usedFreeze, streakFreezes: doer.streakFreezes - (usedFreeze ? 1 : 0), milestone };
+
+        const totalDelta = delta + milestoneBonus;
+        const newTotal   = Math.max(0, (doer.totalStars  || 0) + totalDelta);
+        const newWeekly  = weeklyReset && done  ? effectiveStars + milestoneBonus
                          : weeklyReset && !done ? 0
-                         : Math.max(0, (doer.weeklyStars || 0) + delta);
+                         : Math.max(0, (doer.weeklyStars || 0) + totalDelta);
 
         await prisma.user.update({
           where: { id: doerId },
@@ -124,6 +139,16 @@ router.patch("/:id/complete", authenticate, async (req, res) => {
             referenceId: task.id, weekYear: currentWeekYear,
           }
         });
+
+        if (milestoneBonus > 0) {
+          await prisma.starsLog.create({
+            data: {
+              userId: doerId, delta: milestoneBonus,
+              reason: "streak_milestone",
+              referenceId: String(newStreak), weekYear: currentWeekYear,
+            }
+          });
+        }
       }
     }
     res.json({ success:true, done, doubleBonus, streakInfo });
