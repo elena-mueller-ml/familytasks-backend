@@ -9,11 +9,14 @@ datasource db {
 }
 
 model Family {
-  id         String   @id @default(cuid())
-  name       String
-  inviteCode String   @unique @default(cuid())
-  rewardMode String   @default("praemien")
-  createdAt  DateTime @default(now())
+  id                   String   @id @default(cuid())
+  name                 String
+  inviteCode           String   @unique @default(cuid())
+  rewardMode           String   @default("praemien")
+  doubleStarDays       String   @default("[]")
+  doubleStarActive     Boolean  @default(false)
+  doubleStarActiveDate String   @default("")
+  createdAt            DateTime @default(now())
 
   members User[]
   tasks   Task[]
@@ -23,16 +26,19 @@ model Family {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  familyId    String
-  name        String
-  role        String
-  pin         String?
-  avatarColor String   @default("#1D9E75")
-  totalStars  Int      @default(0)
-  weeklyStars Int      @default(0)
-  weekYear    String   @default("")
-  createdAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  familyId       String
+  name           String
+  role           String
+  pin            String?
+  avatarColor    String   @default("#1D9E75")
+  totalStars     Int      @default(0)
+  weeklyStars    Int      @default(0)
+  weekYear       String   @default("")
+  currentStreak  Int      @default(0)
+  lastStreakDate String   @default("")
+  streakFreezes  Int      @default(0)
+  createdAt      DateTime @default(now())
 
   family        Family           @relation(fields: [familyId], references: [id])
   assignedTasks Task[]           @relation("AssignedTo")
