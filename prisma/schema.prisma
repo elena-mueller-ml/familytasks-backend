@@ -126,7 +126,7 @@ model StarsLog {
 model Reward {
   id            String   @id @default(cuid())
   familyId      String
-  forUserId     String
+  forUserId     String?
   name          String
   icon          String   @default("🎁")
   starsRequired Int
