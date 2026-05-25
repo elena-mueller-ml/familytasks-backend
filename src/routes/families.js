@@ -45,7 +45,7 @@ router.patch("/reward-mode", authenticate, requireParent, async (req, res) => {
 router.patch("/double-star-days", authenticate, requireParent, async (req, res) => {
   try {
     const { days } = req.body;
-    if (!Array.isArray(days)) return res.status(400).json({ error:"days muss ein Array sein" });
+    if (!Array.isArray(days) || days.length > 1) return res.status(400).json({ error:"Maximal ein Doppelstern-Tag pro Woche erlaubt" });
     const f = await prisma.family.update({
       where: { id: req.user.familyId },
       data: { doubleStarDays: JSON.stringify(days) }

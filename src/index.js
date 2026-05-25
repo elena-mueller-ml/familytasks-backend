@@ -5,6 +5,7 @@ import authRoutes   from "./routes/auth.js";
 import familyRoutes from "./routes/families.js";
 import taskRoutes   from "./routes/tasks.js";
 import rewardRoutes from "./routes/rewards.js";
+import friendRoutes from "./routes/friends.js";
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -15,4 +16,5 @@ app.use("/api/auth",     authRoutes);
 app.use("/api/families", familyRoutes);
 app.use("/api/tasks",    taskRoutes);
 app.use("/api/rewards",  rewardRoutes);
+app.use("/api/friends",  friendRoutes);
 app.listen(PORT, () => console.log(`FamilyTasks API läuft auf Port ${PORT}`));

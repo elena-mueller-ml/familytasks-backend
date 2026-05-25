@@ -38,17 +38,34 @@ model User {
   currentStreak  Int      @default(0)
   lastStreakDate String   @default("")
   streakFreezes  Int      @default(0)
+  friendCode     String?  @unique
   createdAt      DateTime @default(now())
 
-  family        Family           @relation(fields: [familyId], references: [id])
-  assignedTasks Task[]           @relation("AssignedTo")
-  createdTasks  Task[]           @relation("CreatedBy")
-  completions   TaskCompletion[]
-  starsLog      StarsLog[]
-  redemptions   RewardRedemption[]
-  pushTokens    PushToken[]
+  family              Family           @relation(fields: [familyId], references: [id])
+  assignedTasks       Task[]           @relation("AssignedTo")
+  createdTasks        Task[]           @relation("CreatedBy")
+  completions         TaskCompletion[]
+  starsLog            StarsLog[]
+  redemptions         RewardRedemption[]
+  pushTokens          PushToken[]
+  sentFriendships     Friendship[]     @relation("FriendshipSender")
+  receivedFriendships Friendship[]     @relation("FriendshipReceiver")
 
   @@map("users")
+}
+
+model Friendship {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("FriendshipSender",   fields: [senderId],   references: [id], onDelete: Cascade)
+  receiver User @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@map("friendships")
 }
 
 model Task {
